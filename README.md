@@ -1,6 +1,52 @@
-# Hands-on Project: Implementation - Part 1# 
- This architecture will be implemented in 03 parts as follows: ### **Part 01 - Containerization and Image Delivery with Docker + ECR** In this step, you will package the **HumanGov** application and the **Webserver** (Nginx) in a Docker image and push the images to the **Amazon Elastic Container Registry (ECR)**. This includes - Creating the Dockerfile with the application's dependencies; - Building and testing the image locally; - ECR authentication and secure image upload to the AWS repository. ***The aim is to ensure that the application is ready to be run in a containerized environment and stored securely in the cloud repository.*** --- ### **Part 02 - Provisioning Resources with Terraform** With the image already published in ECR, you will use **Terraform** to provision the AWS resources that make up the application's infrastructure: - **S3 buckets** for data storage; - **DynamoDB tables** for persisting records; - And we'll also create an ECS Cluster! ***This step ensures the consistency of the infrastructure, with automated, versioned and replicable provisioning.*** --- ### **Part 03 - Manual Deployment with ECS: Creating Task Definitions and Services** In this last phase, you will manually create the **Task Definition** in ECS, pointing to the ECR image, and deploy the application via an **ECS service**. This involves - Configuring the task's network type and resource allocation; - Associating the container image published on the ECR; - Launching the ECS service and checking that the application is working per tenant. ***This step demonstrates the manual deployment flow, highlighting the complexity and importance of automation in future projects.*** --- Prerequisites - Cleaning up the environment:
-bash
+# Hands-on Project: Implementation - Part 1
+
+This architecture will be implemented in 03 parts as follows:
+
+### **Part 01 - Containerization and Image Delivery with Docker + ECR**
+
+In this step, you will package the **HumanGov** application and the **Webserver** (Nginx) in a Docker image and push the images to the **Amazon Elastic Container Registry (ECR)**.
+
+This includes
+
+- Creating the Dockerfile with the application's dependencies;
+- Building and testing the image locally;
+- ECR authentication and secure image upload to the AWS repository.
+
+***The aim is to ensure that the application is ready to be run in a containerized environment and stored securely in the cloud repository.***
+
+---
+
+### **Part 02 - Provisioning Resources with Terraform**
+
+With the image already published in ECR, you will use **Terraform** to provision the AWS resources that make up the application's infrastructure:
+
+- **S3 buckets** for data storage;
+- **DynamoDB tables** for persisting records;
+- And we'll also create an ECS Cluster!
+
+***This step ensures the consistency of the infrastructure, with automated, versioned and replicable provisioning.***
+
+---
+
+### **Part 03 - Manual Deployment with ECS: Creating Task Definitions and Services**
+
+In this last phase, you will manually create the **Task Definition** in ECS, pointing to the ECR image, and deploy the application via an **ECS service**.
+
+This involves
+
+- Configuring the task's network type and resource allocation;
+- Associating the container image published on the ECR;
+- Launching the ECS service and checking that the application is working per tenant.
+
+***This step demonstrates the manual deployment flow, highlighting the complexity and importance of automation in future projects.***
+
+---
+
+# Prerequisites
+
+- Cleaning up the environment:
+    
+    ```bash
     ls
     rm -rf hands-on-tasks-terraform
     rm -rf terraform-module-ec2
@@ -9,17 +55,70 @@ bash
     rm -rf local-repo
     rm -rf local-repo2
     rm -rf ansible-tasks
-<aside> 💡 To delete **only the visible** (not hidden) **folders** and **keep only** **human-gov-application** and **human-gov-infrastructure**, use the following command:
-bash
+    ```
+    
+    <aside>
+    💡
+    
+    To delete **only the visible** (not hidden) **folders** and **keep only** **`human-gov-application`** and **`human-gov-infrastructure`**, use the following command:
+    
+    ```bash
     find . -maxdepth 1 -type d ! -name '.' ! -name 'human-gov-application' ! -name 'human-gov-infrastructure' ! -name '.*' -exec rm -rf {} +
-- type d: searches only directories. - maxdepth 1: restricts the search to the current directory (no subfolders). - !-name '.*': **ignores hidden directories** (such as .git, .vscode, etc.). - ! -name 'human-gov-application' ! -name 'human-gov-infrastructure': **preserves** only these two folders. - exec rm -rf {} +: deletes the other directories found. --- ### Security tip: Before executing, preview what will be deleted with:
-bash
+    ```
+    
+    - `type d`: searches only directories.
+    - `maxdepth 1`: restricts the search to the current directory (no subfolders).
+    - `!-name '.*'`: **ignores hidden directories** (such as `.git`, `.vscode`, etc.).
+    - `! -name 'human-gov-application' ! -name 'human-gov-infrastructure'`: **preserves** only these two folders.
+    - `exec rm -rf {} +`: deletes the other directories found.
+    
+    ---
+    
+    ### Security tip:
+    
+    Before executing, preview what will be deleted with:
+    
+    ```bash
     find . -maxdepth 1 -type d ! -name '.' ! -name 'human-gov-application' ! -name 'human-gov-infrastructure' ! -name '.*' -exec echo {} +
-</aside> - Create **IAM Role** for Tasks Execution: <aside> 💡 Just as we created **IAM Roles** to allow **EC2** instances to perform actions on **DynamoDB tables** and **S3 buckets**, we also need to define a **specific IAM Role for the ECS Cluster**. This role is essential so that ECS is allowed to **execute the** application's **tasks** with security and proper access control. </aside> **IAM | Roles** - **AWS service** - **Service or use case: Elastic Container Service** - **Chose a use case for the specific service | Use case: Elastic Container Service Task** - **Permissions:** - **AmazonS3FullAccess** - **AmazonDynamoDBFullAccess** - **AmazonECSTaskExecutionRolePolicy** - **Name: HumanGovECSExecutionRole** ***Create Role*** # Part 01 - Build & Push Image: Docker & ECR ## Step 01 - Create Application 'Dockerfile' File
-bash
+    ```
+    
+    </aside>
+    
+
+- Create **IAM Role** for Tasks Execution:
+    
+    <aside>
+    💡
+    
+    Just as we created **IAM Roles** to allow **EC2** instances to perform actions on **DynamoDB tables** and **S3 buckets**, we also need to define a **specific IAM Role for the ECS Cluster**. This role is essential so that ECS is allowed to **execute the** application's **tasks** with security and proper access control.
+    
+    </aside>
+    
+    **IAM | Roles**
+    
+    - **AWS service**
+    - **Service or use case: `Elastic Container Service`**
+    - **Chose a use case for the specific service | Use case: `Elastic Container Service Task`**
+    - **Permissions:**
+        - **`AmazonS3FullAccess`**
+        - **`AmazonDynamoDBFullAccess`**
+        - **`AmazonECSTaskExecutionRolePolicy`**
+    - **Name: `HumanGovECSExecutionRole`**
+        
+        ***Create Role***
+        
+
+# Part 01 - Build & Push Image: Docker & ECR
+
+## Step 01 - Create Application 'Dockerfile' File
+
+```bash
 cd human-gov-application/src && touch Dockerfile
-📄 Dockerfile
-docker
+```
+
+📄 `Dockerfile`
+
+```docker
 # Use Python as the base image
 FROM python:3.8-slim-buster
 
@@ -37,8 +136,35 @@ COPY . /app
 # Start Gunicorn server
 # Start Flask application using Gunicorn with 1 worker, binding to all network interfaces on port 8000
 CMD ["gunicorn", "--workers", "1", "--bind", "0.0.0.0:8000", "humangov:app"]
-<aside> 💡 **humangov:app** Open the file [**humangov.py**](http://humangov.py) and check the name of the main function → # Flask "app = Flask (**name**)" </aside> ## Step 02 - Creating the Application Repository in ECR ![image.png](attachment:0e5eff10-878b-4823-bb5c-1cb621c1b72c:image.png) ![image.png](attachment:cf520b67-9be2-4a9b-b5f4-ef09f3b91fdd:image.png) - **Repository Name**: **humangov-app** **Create** ## Step 03 - Configuring the Repository, Creating an Image and Making a Push - Select the repository and click on: **View push commands** - Execute the commands shown. <aside> 💡 Error: **docker: command not found**
-bash
+```
+
+<aside>
+💡
+
+**`humangov:app`**
+
+Open the file [**`humangov.py`**](http://humangov.py) and check the name of the main function → # Flask "app = Flask (**name**)"
+
+</aside>
+
+## Step 02 - Creating the Application Repository in ECR
+
+- **Repository Name**: **`humangov-app`**
+    
+    **Create**
+    
+
+## Step 03 - Configuring the Repository, Creating an Image and Making a Push
+
+- Select the repository and click on: **`View push commands`**
+- Execute the commands shown.
+
+<aside>
+💡
+
+Error: **docker: command not found**
+
+```bash
 sudo yum install -y docker
 docker ps
 sudo systemctl status docker
@@ -52,14 +178,24 @@ connect: permission denied
 sudo usermod -aG docker $USER
 newgrp docker
 docker ps
-</aside> **Validate the upload of the HumanGov application image in ECR!** ## Step 04 - Creating the Webserver Files
-bash
+```
+
+</aside>
+
+**Validate the upload of the HumanGov application image in ECR!**
+
+## Step 04 - Creating the Webserver Files
+
+```bash
 cd ..
 pwd # /home/ec2-user/human-gov-application
 
 mkdir nginx && touch nginx.conf proxy_params Dockerfile
-📄 nginx.conf
-bash
+```
+
+📄 `nginx.conf` 
+
+```bash
 server {
     listen 80;
     server_name humangov www.humangov;
@@ -69,13 +205,50 @@ server {
         proxy_pass http://localhost:8000; 
     }
 }
-<aside> 💡 **"Remember we didn't use the 'default' Nginx configuration file?"** This file configures the **NGINX server** to: - Listen on port **80**; - Respond to the humangov and www.humangov domains; - Redirect requests to the Flask backend running on localhost:8000 via **proxy**. </aside> 📄 proxy_params
-bash
+```
+
+<aside>
+💡
+
+**"Remember we didn't use the 'default' Nginx configuration file?"**
+
+This file configures the **NGINX server** to:
+
+- Listen on port **80**;
+- Respond to the `humangov` and `www.humangov` domains;
+- Redirect requests to the Flask backend running on `localhost:8000` via **proxy**.
+</aside>
+
+📄 `proxy_params`
+
+```bash
 proxy_set_header Host $host;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-<aside> 💡 Defines **HTTP headers** that will be passed to the backend, such as: - Host: keeps the original host name; - X-Real-IP: passes the client's real IP; - X-Forwarded-For: registers the chain of IPs in proxies. </aside> <aside> 💡 These files make NGINX work like a **reverse proxy**, passing on requests to the Flask application and keeping important client information. </aside> A **reverse proxy** receives requests from the client and **redirects** them **to an internal server**, such as a backend application. It hides the real server and can balance load, add security and cache. 📄 Dockerfile
-docker
+```
+
+<aside>
+💡
+
+Defines **HTTP headers** that will be passed to the backend, such as:
+
+- `Host`: keeps the original host name;
+- `X-Real-IP`: passes the client's real IP;
+- `X-Forwarded-For`: registers the chain of IPs in proxies.
+</aside>
+
+<aside>
+💡
+
+These files make NGINX work like a **reverse proxy**, passing on requests to the Flask application and keeping important client information.
+
+</aside>
+
+A **reverse proxy** receives requests from the client and **redirects** them **to an internal server**, such as a backend application. It hides the real server and can balance load, add security and cache.
+
+📄 `Dockerfile`
+
+```docker
 # Use the NGINX Alpine image as the base
 FROM nginx:alpine
 
@@ -93,16 +266,87 @@ EXPOSE 80
 
 # Start NGINX in the foreground
 CMD ["nginx", "-g", "daemon off;"]
-<aside> 💡 **CMD ["nginx", "-g", "daemon off;"]** **Starts NGINX in the foreground**, without running as a daemon (background service). This is important in containers, because the main process needs to **be active** for the container not to terminate automatically. </aside> ## Step 05 - Creating the Webserver Repository in ECR ![image.png](attachment:0e5eff10-878b-4823-bb5c-1cb621c1b72c:image.png) ![image.png](attachment:cf520b67-9be2-4a9b-b5f4-ef09f3b91fdd:image.png) - **Repository Name**: **humangov-nginx** **Create** ## Step 06 - Configuring the Repository, Creating an Image and Making a Push - Select the repository and click on: **View push commands** - Execute the commands shown. **Validate the upload of the Nginx Webserver image in ECR!** # Hands-on Project: Implementation - Part 2 ![image.png](attachment:20d0d913-c38b-4f05-baab-dfccacfd922d:image.png) # **Part 02 - Provisioning with Terraform** We're going to use **Terraform** to provision the AWS resources that make up the application's infrastructure: - **S3 buckets** for data storage; - **DynamoDB tables** for persisting records; - And we'll also create an ECS Cluster! ***This step ensures the consistency of the infrastructure, with automated, versioned and replicable provisioning.*** # **Attention: we're going to create an ECS Cluster with AWS Fargate ($)** 💡 Note that AWS Fargate doesn't have a free tier at the moment, so this practical project will generate a small cost of a few cents. **We recommend that you only start the second part of this project when you have enough time to complete both part 2 and part 3, in order to avoid leaving the ECS cluster running for too long.** **Don't forget to delete the cluster as soon as you've finished the practical project!** And remember: **don't think of it as a cost to yourself, but as an investment in yourself and your career!** ***It will pay off! 🚀*** --- ## Step 01 - Checking Terraform Remote State(terraform.tfstate)
-bash
+```
+
+<aside>
+💡
+
+**CMD ["nginx", "-g", "daemon off;"]**
+
+**Starts NGINX in the foreground**, without running as a daemon (background service). This is important in containers, because the main process needs to **be active** for the container not to terminate automatically.
+
+</aside>
+
+## Step 05 - Creating the Webserver Repository in ECR
+
+- **Repository Name**: **`humangov-nginx`**
+    
+    **Create**
+    
+
+## Step 06 - Configuring the Repository, Creating an Image and Making a Push
+
+- Select the repository and click on: **`View push commands`**
+- Execute the commands shown.
+
+**Validate the upload of the Nginx Webserver image in ECR!**
+
+# Hands-on Project: Implementation - Part 2
+
+# **Part 02 - Provisioning with Terraform**
+
+We're going to use **Terraform** to provision the AWS resources that make up the application's infrastructure:
+
+- **S3 buckets** for data storage;
+- **DynamoDB tables** for persisting records;
+- And we'll also create an ECS Cluster!
+
+***This step ensures the consistency of the infrastructure, with automated, versioned and replicable provisioning.***
+
+# **Attention: we're going to create an ECS Cluster with AWS Fargate ($)**
+
+💡 Note that AWS Fargate doesn't have a free tier at the moment, so this practical project will generate a small cost of a few cents. 
+**We recommend that you only start the second part of this project when you have enough time to complete both part 2 and part 3, in order to avoid leaving the ECS cluster running for too long.** 
+
+**Don't forget to delete the cluster as soon as you've finished the practical project!** 
+
+And remember: **don't think of it as a cost to yourself, but as an investment in yourself and your career!** 
+
+***It will pay off! 🚀***
+
+---
+
+## Step 01 - Checking Terraform Remote State`(terraform.tfstate`)
+
+```bash
 cd /home/ec2-user/human-gov-infrastructure/terraform
 
-# This command can take a while, do not worry :)#
-
+# This command can take a while, do not worry :)
 **terraform** show    # The state file is empty. No resources are represented.
-## Step 02 - Adjusting the Terraform Codes #
-<aside> 💡 We won't be deploying **EC2** instances, as the current premise of the **HumanGov** project is to use a **container-based** architecture **with AWS ECS and Fargate**. However, we still need to **maintain the creation of the DynamoDB and S3 resources**, which are fundamental to the functioning of the application. To do this, we need to **adjust the following files** in the Terraform project: - modules/aws_humangov_infrastructure/main.tf - modules/aws_humangov_infrastructure/output.tf - terraform/outputs.tf The following file is already commented out, indicating **which resources will no longer be created** in this Fargate scenario. </aside> 📄 modules/aws_humangov_infrastructure/main.tf
-hcl
+```
+
+## Step 02 - Adjusting the Terraform Codes
+
+<aside>
+💡
+
+We won't be deploying **EC2** instances, as the current premise of the **HumanGov** project is to use a **container-based** architecture **with AWS ECS and Fargate**.
+
+However, we still need to **maintain the creation of the DynamoDB and S3 resources**, which are fundamental to the functioning of the application.
+
+To do this, we need to **adjust the following files** in the Terraform project:
+
+- `modules/aws_humangov_infrastructure/main.tf`
+- `modules/aws_humangov_infrastructure/output.tf`
+- `terraform/outputs.tf`
+
+The following file is already commented out, indicating **which resources will no longer be created** in this Fargate scenario.
+
+</aside>
+
+📄 `modules/aws_humangov_infrastructure/main.tf`
+
+```hcl
 /*
 resource "aws_security_group" "state_ec2_sg" {
     name = "humangov-${var.state_name}-ec2-sg"
@@ -243,8 +487,19 @@ resource "aws_iam_instance_profile" "s3_dynamodb_full_access_instance_profile" {
   }
 }
 */
-📄 modules/aws_humangov_infrastructure/output.tf <aside> 💡 VS Code: select the lines and click "CTRL+;" to comment per line! </aside>
-hcl
+
+```
+
+📄 `modules/aws_humangov_infrastructure/output.tf`
+
+<aside>
+💡
+
+VS Code: select the lines and click "CTRL+;" to comment per line!
+
+</aside>
+
+```hcl
 # output "state_ec2_public_dns" {
 #    value = aws_instance.state_ec2.public_dns
 # }
@@ -256,8 +511,12 @@ output "state_dynamodb_table" {
 output "state_s3_bucket" {
     value = aws_s3_bucket.state_s3.bucket
 }
-📄 terraform/output.tf
-hcl
+
+```
+
+📄 `terraform/output.tf`
+
+```hcl
 output "state_infrastructure_outputs" {
   value = {
     for state, infrastructure in module.aws_humangov_infrastructure :
@@ -268,29 +527,182 @@ output "state_infrastructure_outputs" {
     }
   }
 }
-Make sure that the terraform/variables.tf file has only one state listed
-hcl
+```
+
+Make sure that the `terraform/variables.tf` file has only one state listed
+
+```hcl
 variable "states" {
   description = "A lista de nomes de estados"
   default     = ["california"]
 }
+
+```
+
 ## Step 03 - Running Terraform
-bash
+
+```bash
 pwd # /home/ec2-user/human-gov-infrastructure/terraform
 
 **terraform** plan      # 3 to add
 **terraform** apply -auto-approve
+
+```
+
 Write down the names of your resources, we'll need them later:
-bash
+
+```bash
 US_STATE=california
 AWS_REGION=us-east-1
 AWS_DYNAMODB_TABLE=humangov-california-dynamodb
 AWS_BUCKET=humangov-california-s3-a8tq
-## Step 04 - Creating an ECS Cluster Create a new ECS cluster called humangov-ecs-cluster using the UI Console with the following configuration: -
-**ECS | Cluster | Create Cluster** - **Cluster name: humangov-cluster** - **Infrastructure: Amazon EC2 instances** - ***Create*** # Hands-on Project: Implementation - Part 3  # **Part 03 - Creating Task Definitions & Services** In this last phase, you will manually create the **Task Definition** in ECS, pointing to the ECR image, and deploy the application via an **ECS service**. This involves - Configuring the task's network type and resource allocation; - Associating the container image published on the ECR; - Launching the ECS service and checking that the application is working per tenant. ***This step demonstrates the manual deployment flow, highlighting the complexity and importance of automation in future projects.*** ## Step 01 - **Creating 'Task Definition'** - **Task definitions | Create new task definition** - **Task definition family: humangov-fullstack** - **Infrastructure requirements: AWS Fargate** - **Task size:** - CPU: **1 vCPU** | Memory: **3 GB** - **Task role: HumanGovECSExecutionRole** - **Task execution role: HumanGovECSExecutionRole** - **Container - 1:** - **Name: app (*Application Container*)** - **Image URI: public.ecr.aws/xxxxxxxx/humangov-app** | **ECR: humangov-app repository** - **Essential container: Yes** - **Container port: 8000** - **Port name: app-8000-tcp** - **Environment variables** (replace the values of the variables with your own values): - AWS_BUCKET = YOUR-BUCKET-NAME - AWS_DYNAMODB_TABLE = humangov-california-dynamodb - AWS_REGION = us-east-1 - US_STATE = california **+ Add container** - **Container - 2:** - **Name**: **nginx***(WebServer container*) - **Image URI**: **public.ecr.aws/xxxxxxxx/humangov-nginx** | **ECR**: humangov-nginx repository - **Essential container: No** **Add by mapping** - **Container port: 80** - **Port name: nginx-80-tcp** - **App protocol: HTTP** ***Create*** ## Step 02 - **Creating 'Service'** <aside> 💡 The service is responsible for deploying and exposing the service so that it can be accessed. </aside> - Or, once you are in a "Task Definition", click on "Deploy" | "Create service"  - **Service name: humangov-svc** - **Existing cluster: humangov-cluster** - **Compute options | Launch type: FARGATE** - **Platform version: LATEST** - **Service type: Replica** - **Desired tasks: 2** - **Networking:** - **VPC: Default** - **Security Group: Default(make sure to allow traffic on Port 80)** - **Load Balancing** - [ * ] **Use load balancing** - Application Load Balancer - **Load balancer name: humangov-lb** - Select the container that will receive the requests (Frontend | Proxy Webserver Nginx)  - **Target group name: humangov-tg** ***Create*** ***This process will take a while to complete the deployment of the solution!*** ## Step 03 - Validating the ECS component - **Cluster** - A running Cluster. - **Tasks** - Tasks created to provide High Availability (HA)! - EC2 | Load Balancing | Target Groups - EC2 | No instance running (Fargate)! - **Infrastructure** - Container instances created in different availability zones - **Service** - **Configuration and Networking** - **Network configuration** - DNS Name (use to access the application) ## Step 04 - Testing the application - **First Name: Caron** - **Last Name: Elizabeth** - **Employee Role: Trainee** - **Annual Salary (USD): 45000** - **Scanned ID (PDF):** [Driving License - Sample.pdf](attachment:dfa69d32-c4b7-4b01-9869-9523698a6586:Driving_License_-_Sample.pdf) ## Step 05 - Collecting the Evidence - **Evidence 1:** **Screen showing the ECS service running.**  - **Evidence 2:** **Screen showing the exclusion of the ECS Fargate Cluster (No clusters).**  ## Step 06 - Destroy all resources - **ECS | Select** Cluster - Start by deleting the **Service** - Force delete | delete - Then **Task Definition** - Select | Actions >> Deregister - Filter status: Inactive - Select | Actions >> Delete - and finally **Delete Cluster** - **Delete the ECR Repositories.** - **Remove the PDF manually from the S3 bucket.** - **Destroy AWS S3 and DynamoDB using Terraform**
-bash
+
+```
+
+## Step 04 - Creating an ECS Cluster
+
+Create a new ECS cluster called humangov-ecs-cluster using the UI Console with the following configuration:
+
+- **ECS | Cluster | Create Cluster**
+    - **Cluster name: `humangov-cluster`**
+    - **Infrastructure: `Amazon EC2 instances`**
+        - ***Create***
+# Hands-on Project: Implementation - Part 3
+
+# **Part 03 - Creating Task Definitions & Services**
+
+In this last phase, you will manually create the **Task Definition** in ECS, pointing to the ECR image, and deploy the application via an **ECS service**.
+
+This involves
+
+- Configuring the task's network type and resource allocation;
+- Associating the container image published on the ECR;
+- Launching the ECS service and checking that the application is working per tenant.
+
+***This step demonstrates the manual deployment flow, highlighting the complexity and importance of automation in future projects.***
+
+## Step 01 - **Creating 'Task Definition'**
+
+- **Task definitions | Create new task definition**
+    - **Task definition family: `humangov-fullstack`**
+    - **Infrastructure requirements: `AWS Fargate`**
+    - **Task size:**
+        - CPU: **`1 vCPU`** | Memory: **`3 GB`**
+    - **Task role: `HumanGovECSExecutionRole`**
+    - **Task execution role: `HumanGovECSExecutionRole`**
+    
+    - **Container - 1:**
+        - **Name: `app` (*Application Container*)**
+        - **Image URI: `public.ecr.aws/xxxxxxxx/humangov-app`**  | **ECR: `humangov-app` repository**
+        - **Essential container: `Yes`**
+        - **Container port: `8000`**
+        - **Port name: `app-8000-tcp`**
+        
+    - **Environment variables** (replace the values of the variables with your own values):
+        - AWS_BUCKET = `YOUR-BUCKET-NAME`
+        - AWS_DYNAMODB_TABLE = `humangov-california-dynamodb`
+        - AWS_REGION = `us-east-1`
+        - US_STATE = `california`
+    
+    **+ Add container**
+    
+    - **Container - 2:**
+        - **Name**: **`nginx`***(WebServer container*)
+        - **Image URI**: **`public.ecr.aws/xxxxxxxx/humangov-nginx`** | **ECR**: `humangov-nginx` repository
+        - **Essential container: `No`**
+        
+        **Add by mapping**
+        
+        - **Container port: `80`**
+        - **Port name: `nginx-80-tcp`**
+        - **App protocol: `HTTP`**
+        
+        ***Create***
+        
+
+## Step 02 - **Creating 'Service'**
+
+<aside>
+💡
+
+The service is responsible for deploying and exposing the service so that it can be accessed.
+
+</aside>
+
+- Or, once you are in a "Task Definition", click on "Deploy" | "Create service"
+    
+- **Service name: `humangov-svc`**
+- **Existing cluster: `humangov-cluster`**
+- **Compute options | Launch type: `FARGATE`**
+- **Platform version: `LATEST`**
+- **Service type: `Replica`**
+- **Desired tasks: `2`**
+- **Networking:**
+    - **VPC: `Default`**
+    - **Security Group: `Default`(make sure to allow traffic on Port 80)**
+    
+- **Load Balancing**
+    - [ * ] **Use load balancing**
+        - Application Load Balancer
+    - **Load balancer name: `humangov-lb`**
+        - Select the container that will receive the requests (Frontend | Proxy Webserver Nginx)
+        
+    - **Target group name: `humangov-tg`**
+
+***Create***
+
+***This process will take a while to complete the deployment of the solution!***
+
+## Step 03 - Validating the ECS component
+
+- **Cluster**
+    - A running Cluster.
+- **Tasks**
+    - Tasks created to provide High Availability (HA)!
+        - EC2 | Load Balancing | Target Groups
+        - EC2 | No instance running (Fargate)!
+- **Infrastructure**
+    - Container instances created in different availability zones
+- **Service**
+    - **Configuration and Networking**
+        - **Network configuration**
+            - `DNS Name` (use to access the application)
+
+## Step 04 - Testing the application
+
+- **First Name: `Caron`**
+- **Last Name: `Elizabeth`**
+- **Employee Role: `Trainee`**
+- **Annual Salary (USD): `45000`**
+- **Scanned ID (PDF):**
+
+https://drive.google.com/file/d/1JHNrCt3cpDLhH8vGTQ9oEPU5XhU4lyzQ/view?usp=sharing
+## Step 05 - Collecting the Evidence
+
+- **Evidence 1:** **Screen showing the ECS service running.**
+    
+    
+    
+
+- **Evidence 2:** **Screen showing the exclusion of the ECS Fargate Cluster (No clusters).**
+
+    
+
+## Step 06 - Destroy all resources
+
+- **ECS | Select** Cluster
+    - Start by deleting the **Service**
+        - Force delete | delete
+    - Then **Task Definition**
+        - Select | Actions >> `Deregister`
+        - Filter status: `Inactive`
+        - Select | Actions >> `Delete`
+    - and finally **Delete Cluster**
+
+- **Delete the ECR Repositories.**
+- **Remove the PDF manually from the S3 bucket.**
+- **Destroy AWS S3 and DynamoDB using Terraform**
+
+```bash
 cd /home/ec2-user/human-gov-infrastructure/terraform
 **terraform** destroy -auto-approve
-
-write all this as a human writing make each step more clear and dont reove sequence of the steps a
-remove all the images
