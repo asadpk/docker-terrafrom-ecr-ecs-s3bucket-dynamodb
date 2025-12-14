@@ -1,0 +1,9 @@
+form/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfplan
+*.tfstate.lock.info
+crash.log
+*.log
+*.zip

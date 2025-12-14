@@ -1,0 +1,13 @@
+Added variable and provisioners to Terraform module
+aws_humangov_infrastructure/main.tfi
+This reverts commit 029a3caac5c407bf1b8c7dcb9dd69f6ad58b3bda.
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Committer: EC2 Default User <ec2-user@ip-172-31-75-210.ec2.internal>
+#
+# On branch master
+# Changes to be committed:
+#	modified:   terraform/modules/aws_humangov_infrastructure/main.tf
+#
